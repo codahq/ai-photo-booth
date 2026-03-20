@@ -54,14 +54,14 @@ export function CameraButton({ onCapture, disabled }: CameraButtonProps) {
           </div>
         ) : (
           <>
-            {/* Webcam preview */}
-            <div className="relative w-full max-w-2xl mx-4">
+            {/* Webcam preview — 5/6 screen height, centered */}
+            <div className="relative mx-4" style={{ height: '83.333vh', aspectRatio: '4/3', maxWidth: '100vw' }}>
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-full rounded-lg border border-white/10 bg-black"
+                className="w-full h-full object-cover rounded-lg border border-white/10 bg-black"
                 style={{ transform: 'scaleX(-1)' }}
               />
 
@@ -72,19 +72,19 @@ export function CameraButton({ onCapture, disabled }: CameraButtonProps) {
                 <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-amber-400/70 rounded-bl-sm" />
                 <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-amber-400/70 rounded-br-sm" />
               </div>
-            </div>
 
-            {/* Capture button */}
-            <div className="mt-8">
-              <button
-                onClick={handleCapture}
-                disabled={!isActive}
-                className="relative w-20 h-20 rounded-full bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-all active:scale-95 shadow-lg shadow-white/20"
-                aria-label="Take photo"
-              >
-                <div className="absolute inset-2 rounded-full border-2 border-gray-300" />
-              </button>
-              <p className="text-center text-gray-400 text-sm mt-3">Take Photo</p>
+              {/* Capture button overlaid at the bottom of the preview */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+                <button
+                  onClick={handleCapture}
+                  disabled={!isActive}
+                  className="relative w-20 h-20 rounded-full bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-all active:scale-95 shadow-lg shadow-white/20"
+                  aria-label="Take photo"
+                >
+                  <div className="absolute inset-2 rounded-full border-2 border-gray-300" />
+                </button>
+                <p className="text-gray-300 text-sm">Take Photo</p>
+              </div>
             </div>
           </>
         )}

@@ -126,21 +126,21 @@ export default function App() {
       {/* Processing overlay */}
       {appState === 'processing' && (
         <div className="fixed inset-0 z-30 flex flex-col items-center justify-center bg-black/90">
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-10">
             <div className="relative">
-              <Loader2 className="w-16 h-16 text-amber-400 animate-spin" />
-              <div className="absolute inset-0 w-16 h-16 rounded-full border-2 border-amber-400/20" />
+              <Loader2 className="w-40 h-40 text-amber-400 animate-spin" />
+              <div className="absolute inset-0 w-40 h-40 rounded-full border-4 border-amber-400/20" />
             </div>
             <div className="text-center">
-              <p className="text-white text-xl font-medium mb-1">Developing your photo...</p>
-              <p className="text-gray-400 text-sm">AI is working its magic</p>
+              <p className="text-white text-5xl font-medium mb-3">Developing your photo...</p>
+              <p className="text-gray-400 text-2xl">AI is working its magic</p>
             </div>
             {/* Retro film strip animation */}
-            <div className="flex gap-1 mt-2">
+            <div className="flex gap-3 mt-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="w-2 h-2 rounded-full bg-amber-400/40 animate-pulse"
+                  className="w-4 h-4 rounded-full bg-amber-400/40 animate-pulse"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
