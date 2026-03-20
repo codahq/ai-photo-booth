@@ -16,6 +16,7 @@ interface DisplaySession {
   originalImageUrl: string;
   transformedImageUrl: string;
   createdAt: string;
+  prompt?: string;
 }
 
 export default function App() {
@@ -149,11 +150,55 @@ export default function App() {
     setAppState('idle');
   }, []);
 
+  const handleReprocess = useCallback(async (reprocessPrompt: string, reprocessModel: string) => {
+    if (!displaySession?.originalImageUrl) return;
+    const { originalImageUrl } = displaySession;
+    setDisplaySession(null);
+    setAppState('processing');
+    setError(null);
+
+    try {
+      const imageResponse = await fetch(originalImageUrl);
+      const blob = await imageResponse.blob();
+
+      const formData = new FormData();
+      formData.append('image', blob, 'photo.png');
+      formData.append('prompt', reprocessPrompt);
+      formData.append('model', reprocessModel);
+
+      const response = await fetch(`${API_URL}/api/transform`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const apiError = errorData as { error?: string; details?: string };
+        throw new Error(apiError.details || apiError.error || `Server error: ${response.status}`);
+      }
+
+      const session: PhotoSession = await response.json();
+      setDisplaySession({
+        originalImageUrl: `${API_URL}${session.originalUrl}`,
+        transformedImageUrl: `${API_URL}${session.transformedUrl}`,
+        createdAt: session.createdAt,
+        prompt: session.prompt,
+      });
+      setHistory((prev) => [session, ...prev]);
+      setAppState('displaying');
+    } catch (err) {
+      console.error('Reprocess failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to reprocess image');
+      setAppState('idle');
+    }
+  }, [displaySession, model]);
+
   const handleSelectHistoryImage = useCallback((session: PhotoSession) => {
     setDisplaySession({
       originalImageUrl: `${API_URL}${session.originalUrl}`,
       transformedImageUrl: `${API_URL}${session.transformedUrl}`,
       createdAt: session.createdAt,
+      prompt: session.prompt,
     });
     setAppState('displaying');
   }, []);
@@ -186,6 +231,11 @@ export default function App() {
           transformedImageUrl={displaySession.transformedImageUrl}
           createdAt={displaySession.createdAt}
           onDismiss={handleDismissPhoto}
+          prompt={displaySession.prompt}
+          promptHistory={promptHistory}
+          model={model}
+          onModelChange={setModel}
+          onReprocess={displaySession.prompt ? handleReprocess : undefined}
         />
       )}
 

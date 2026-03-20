@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Download, RotateCcw, Sparkles, X } from 'lucide-react';
+import { PromptEditor } from './PromptEditor';
 
 interface PhotoDisplayProps {
   originalImageUrl: string;
   transformedImageUrl: string;
   createdAt: string;
   onDismiss: () => void;
+  prompt?: string;
+  promptHistory?: string[];
+  model?: string;
+  onModelChange?: (model: string) => void;
+  onReprocess?: (prompt: string, model: string) => void;
 }
 
 function formatDateForFilename(iso: string): string {
@@ -14,8 +20,10 @@ function formatDateForFilename(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
 }
 
-export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt, onDismiss }: PhotoDisplayProps) {
+export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt, onDismiss, prompt, promptHistory, model, onModelChange, onReprocess }: PhotoDisplayProps) {
   const [showOriginal, setShowOriginal] = useState(false);
+  const [editablePrompt, setEditablePrompt] = useState(prompt ?? '');
+  const [editableModel, setEditableModel] = useState(model ?? 'gpt-image-1');
   const dateStr = formatDateForFilename(createdAt);
 
   const handleDownload = useCallback(async () => {
@@ -39,15 +47,20 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt,
 
   // Listen for spacebar to dismiss
   useEffect(() => {
+    const isTyping = () => {
+      const el = document.activeElement;
+      return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable);
+    };
+
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && !isTyping()) {
         e.preventDefault();
         onDismiss();
       }
     };
 
     const handleKeyup = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && !isTyping()) {
         e.preventDefault();
       }
     };
@@ -104,6 +117,23 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt,
         alt={showOriginal ? 'Original photo' : 'Transformed photo'}
         className="max-w-full max-h-full object-contain"
       />
+
+      {/* Prompt editor + Reprocess — history only */}
+      {prompt !== undefined && (
+        <div
+          className="absolute bottom-0 left-8 right-8 z-40 pb-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <PromptEditor
+            prompt={editablePrompt}
+            onPromptChange={(p) => { setEditablePrompt(p); }}
+            promptHistory={promptHistory ?? []}
+            model={editableModel}
+            onModelChange={(m) => { setEditableModel(m); onModelChange?.(m); }}
+            onReprocess={onReprocess ? () => onReprocess(editablePrompt, editableModel) : undefined}
+          />
+        </div>
+      )}
 
       {/* Decorative film strip effect */}
       <div className="absolute left-0 top-0 bottom-0 w-8 bg-black flex flex-col justify-around items-center pointer-events-none opacity-60">

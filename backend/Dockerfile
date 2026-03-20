@@ -1,15 +1,28 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+
+RUN npm run build
+
+# ---
+
 FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci --omit=dev
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY --from=builder /app/dist ./dist
 
 RUN mkdir -p /app/storage/originals /app/storage/transformed
 
 EXPOSE 3001
 
-CMD ["npm", "run", "dev"]
+CMD ["node", "dist/index.js"]
