@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Download, RotateCcw, Sparkles, X } from 'lucide-react';
 
 interface PhotoDisplayProps {

@@ -9,15 +9,16 @@ import { ensureStorageDirs, saveSession, getStorageDir } from '../storage/imageS
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const OPENAI_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
+const DEFAULT_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
+const ALLOWED_MODELS = new Set(['gpt-image-1', 'gpt-image-1.5', 'gpt-image-1-mini']);
 const PROVIDER = 'openai';
 const OPENAI_IMAGES_EDIT_URL = 'https://api.openai.com/v1/images/edits';
 
 const DEFAULT_PROMPT =
   'Transform this photo to look like it was taken in the 1950s. Convert to black and white or sepia tone. Change the clothing of any people to 1950s style fashion. Place the scene in a 1950s setting with period-appropriate props, furniture, and environment.';
 
-function buildEffectivePrompt(prompt: string): string {
-  if (OPENAI_MODEL !== 'dall-e-2') {
+function buildEffectivePrompt(prompt: string, model: string): string {
+  if (model !== 'dall-e-2') {
     return prompt;
   }
   // dall-e-2 needs extra nudging to produce visible changes
@@ -50,19 +51,19 @@ async function createFullEditMask(size: number): Promise<Buffer> {
     .toBuffer();
 }
 
-async function editImageWithOpenAI(imageBuffer: Buffer, mimeType: string, prompt: string): Promise<Buffer> {
+async function editImageWithOpenAI(imageBuffer: Buffer, mimeType: string, prompt: string, model: string): Promise<Buffer> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured on the backend');
   }
 
   const formData = new FormData();
-  formData.append('model', OPENAI_MODEL);
+  formData.append('model', model);
   formData.append('prompt', prompt);
   formData.append('size', '1024x1024');
   formData.append('image', new Blob([imageBuffer], { type: mimeType }), 'input.png');
 
-  if (OPENAI_MODEL === 'dall-e-2') {
+  if (model === 'dall-e-2') {
     // dall-e-2 requires response_format and benefits from a full mask to repaint everything
     formData.append('response_format', 'b64_json');
     const fullMask = await createFullEditMask(1024);
@@ -119,6 +120,8 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
     }
 
     const prompt: string = (req.body.prompt as string) || DEFAULT_PROMPT;
+    const requestedModel = req.body.model as string;
+    const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
     const sessionId = uuidv4();
     const storageDir = getStorageDir();
 
@@ -133,13 +136,14 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
 
     const normalizedPng = await prepareImageForOpenAIEdit(req.file.buffer);
 
-    const effectivePrompt = buildEffectivePrompt(prompt);
+    const effectivePrompt = buildEffectivePrompt(prompt, model);
 
     const inferenceStartedAt = Date.now();
     const imageBuffer = await editImageWithOpenAI(
       normalizedPng,
       'image/png',
-      effectivePrompt
+      effectivePrompt,
+      model
     );
     const inferenceEndedAt = Date.now();
 
@@ -158,7 +162,7 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
       prompt,
       createdAt: new Date().toISOString(),
       transform: {
-        model: OPENAI_MODEL,
+        model,
         provider: PROVIDER,
         inputBytes: req.file.buffer.length,
         outputBytes: imageBuffer.length,
@@ -174,7 +178,7 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
 
     console.log('Transform timing:', {
       sessionId,
-      model: OPENAI_MODEL,
+      model,
       provider: PROVIDER,
       inputBytes: req.file.buffer.length,
       outputBytes: imageBuffer.length,

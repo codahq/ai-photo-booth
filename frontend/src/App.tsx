@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { CameraButton } from '@/components/CameraButton';
 import { PhotoDisplay } from '@/components/PhotoDisplay';
@@ -21,6 +21,14 @@ interface DisplaySession {
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [model, setModel] = useState('gpt-image-1');
+  const [promptHistory, setPromptHistory] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('promptHistory') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [displaySession, setDisplaySession] = useState<DisplaySession | null>(null);
   const [history, setHistory] = useState<PhotoSession[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -49,14 +57,19 @@ export default function App() {
   useEffect(() => {
     if (appState !== 'idle') return;
 
+    const isTyping = () => {
+      const el = document.activeElement;
+      return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable);
+    };
+
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && !isTyping()) {
         e.preventDefault();
       }
     };
 
     const handleKeyup = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && !isTyping()) {
         // If Space was just used to dismiss a photo, skip opening the camera
         if (spaceDismissRef.current) {
           spaceDismissRef.current = false;
@@ -85,10 +98,19 @@ export default function App() {
       setAppState('processing');
       setError(null);
 
+      // Save prompt to history
+      setPromptHistory((prev) => {
+        if (prev.includes(prompt)) return prev;
+        const next = [prompt, ...prev].slice(0, 50);
+        localStorage.setItem('promptHistory', JSON.stringify(next));
+        return next;
+      });
+
       try {
         const formData = new FormData();
         formData.append('image', blob, 'photo.png');
         formData.append('prompt', prompt);
+        formData.append('model', model);
 
         const response = await fetch(`${API_URL}/api/transform`, {
           method: 'POST',
@@ -279,7 +301,7 @@ export default function App() {
           />
 
           {/* Prompt editor */}
-          <PromptEditor prompt={prompt} onPromptChange={setPrompt} />
+          <PromptEditor prompt={prompt} onPromptChange={setPrompt} promptHistory={promptHistory} model={model} onModelChange={setModel} />
         </section>
       </main>
     </div>
