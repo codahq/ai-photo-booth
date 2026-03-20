@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Camera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWebcam } from '@/hooks/useWebcam';
@@ -31,6 +31,21 @@ export function CameraButton({ onCapture, disabled }: CameraButtonProps) {
       onCapture(blob);
     }
   }, [capturePhoto, stopWebcam, onCapture]);
+
+  // Listen for spacebar to take photo when webcam is active
+  useEffect(() => {
+    if (!showWebcam) return;
+
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleCapture();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [showWebcam, handleCapture]);
 
   if (showWebcam) {
     return (
@@ -84,6 +99,7 @@ export function CameraButton({ onCapture, disabled }: CameraButtonProps) {
                   <div className="absolute inset-2 rounded-full border-2 border-gray-300" />
                 </button>
                 <p className="text-gray-300 text-sm">Take Photo</p>
+                <p className="text-gray-300 text-xs">or press Space</p>
               </div>
             </div>
           </>

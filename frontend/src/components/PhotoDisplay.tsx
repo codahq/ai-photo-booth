@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Download, RotateCcw, Sparkles, X } from 'lucide-react';
 
 interface PhotoDisplayProps {
   originalImageUrl: string;
   transformedImageUrl: string;
+  createdAt: string;
   onDismiss: () => void;
 }
 
-export function PhotoDisplay({ originalImageUrl, transformedImageUrl, onDismiss }: PhotoDisplayProps) {
+function formatDateForFilename(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+}
+
+export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt, onDismiss }: PhotoDisplayProps) {
   const [showOriginal, setShowOriginal] = useState(false);
+  const dateStr = formatDateForFilename(createdAt);
+
+  const handleDownload = useCallback(async () => {
+    const url = showOriginal ? originalImageUrl : transformedImageUrl;
+    const filename = showOriginal ? `${dateStr} - original.png` : `${dateStr} - ai.png`;
+
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  }, [showOriginal, originalImageUrl, transformedImageUrl]);
+
+  // Listen for spacebar to dismiss
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        onDismiss();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [onDismiss]);
 
   return (
     <div
@@ -23,16 +63,18 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, onDismiss 
 
       {/* Top-right controls */}
       <div className="absolute top-4 right-12 z-40 flex items-center gap-2">
-        <a
-          href={showOriginal ? originalImageUrl : transformedImageUrl}
-          download={showOriginal ? 'original.png' : 'ai-result.png'}
-          onClick={(e) => e.stopPropagation()}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload();
+          }}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 border border-white/20 text-white text-xs hover:border-amber-400/50"
           title="Download current image"
         >
           <Download className="w-3.5 h-3.5" />
           Download
-        </a>
+        </button>
         <button
           type="button"
           onClick={(e) => {

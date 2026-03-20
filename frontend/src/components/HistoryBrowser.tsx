@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, Download, ImageIcon, Trash2 } from 'lucide-react';
 
@@ -18,21 +18,38 @@ interface HistoryBrowserProps {
 }
 
 export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSession }: HistoryBrowserProps) {
-  // showOriginalId: which tile is currently revealing the original (after 5s hold)
-  const [showOriginalId, setShowOriginalId] = useState<string | null>(null);
-  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track which sessions are showing their original vs transformed
+  const [shownImageId, setShownImageId] = useState<Record<string, 'transformed' | 'original'>>({});
 
-  const handleMouseEnter = useCallback((id: string) => {
-    hoverTimer.current = setTimeout(() => setShowOriginalId(id), 5000);
+  const toggleImage = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShownImageId((prev) => ({
+      ...prev,
+      [id]: prev[id] === 'original' ? 'transformed' : 'original',
+    }));
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
+  const handleDownload = useCallback(async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Download failed:', error);
     }
-    setShowOriginalId(null);
   }, []);
+
+  function formatDateForFilename(iso: string): string {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+  }
 
   if (sessions.length === 0) {
     return (
@@ -61,21 +78,21 @@ export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSessio
 
       <ScrollArea className="w-full">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-2">
-          {sessions.map((session) => (
+          {sessions.map((session) => {
+            const isShowingOriginal = shownImageId[session.id] === 'original';
+            return (
             <div
               key={session.id}
               className="relative group cursor-pointer rounded-lg overflow-hidden border border-white/10 hover:border-amber-400/50 transition-all duration-200 aspect-square"
-              onMouseEnter={() => handleMouseEnter(session.id)}
-              onMouseLeave={handleMouseLeave}
               onClick={() => onSelectImage(session)}
               title={`Taken: ${new Date(session.createdAt).toLocaleString()}`}
             >
-              {/* Original (revealed after 5s hover) */}
+              {/* Original */}
               <img
                 src={`${apiUrl}${session.originalUrl}`}
                 alt="Original"
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                  showOriginalId === session.id ? 'opacity-100' : 'opacity-0'
+                  isShowingOriginal ? 'opacity-100' : 'opacity-0'
                 }`}
               />
               {/* Transformed (shown by default) */}
@@ -83,7 +100,7 @@ export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSessio
                 src={`${apiUrl}${session.transformedUrl}`}
                 alt="Transformed"
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                  showOriginalId === session.id ? 'opacity-0' : 'opacity-100'
+                  isShowingOriginal ? 'opacity-0' : 'opacity-100'
                 }`}
               />
 
@@ -92,28 +109,38 @@ export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSessio
 
               {/* Labels */}
               <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <p className="text-white text-xs font-medium">
-                  {showOriginalId === session.id ? 'Showing original' : 'Hold 5s to see original'}
-                </p>
+                <p className="text-white text-xs font-medium">Click pill to toggle</p>
                 <p className="text-gray-400 text-xs">
                   {new Date(session.createdAt).toLocaleDateString()}
                 </p>
               </div>
 
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-amber-300 border border-amber-400/40">
-                AI result
-              </div>
+              {/* Clickable pill showing current image type */}
+              <button
+                type="button"
+                onClick={(e) => toggleImage(session.id, e)}
+                className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-amber-300 border border-amber-400/40 hover:border-amber-300/70 hover:text-amber-200 transition-colors"
+                title="Click to switch between original and AI result"
+              >
+                {isShowingOriginal ? 'Original' : 'AI result'}
+              </button>
 
               <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <a
-                  href={`${apiUrl}${session.transformedUrl}`}
-                  download={`ai-photo-${session.id}.png`}
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const dateStr = formatDateForFilename(session.createdAt);
+                    handleDownload(
+                      `${apiUrl}${isShowingOriginal ? session.originalUrl : session.transformedUrl}`,
+                      isShowingOriginal ? `${dateStr} - original.png` : `${dateStr} - ai.png`
+                    );
+                  }}
                   className="inline-flex items-center justify-center w-7 h-7 rounded bg-black/65 border border-white/20 text-white hover:text-amber-300 hover:border-amber-300/50"
-                  title="Download transformed image"
+                  title="Download current image"
                 >
                   <Download className="w-3.5 h-3.5" />
-                </a>
+                </button>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -132,7 +159,8 @@ export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSessio
                 <div className="w-2 h-2 rounded-full bg-amber-400" />
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </ScrollArea>
     </div>

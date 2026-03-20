@@ -15,6 +15,7 @@ type AppState = 'idle' | 'processing' | 'displaying';
 interface DisplaySession {
   originalImageUrl: string;
   transformedImageUrl: string;
+  createdAt: string;
 }
 
 export default function App() {
@@ -40,6 +41,25 @@ export default function App() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  // Listen for spacebar to open camera when idle
+  useEffect(() => {
+    if (appState !== 'idle') return;
+
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        // Trigger the camera button
+        const cameraButton = document.querySelector('button[aria-label="Open camera"]') as HTMLButtonElement;
+        if (cameraButton && !cameraButton.disabled) {
+          cameraButton.click();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [appState]);
 
   const handleCapture = useCallback(
     async (blob: Blob) => {
@@ -68,8 +88,8 @@ export default function App() {
         setDisplaySession({
           originalImageUrl: `${API_URL}${session.originalUrl}`,
           transformedImageUrl: `${API_URL}${session.transformedUrl}`,
+          createdAt: session.createdAt,
         });
-        setHistory((prev) => [session, ...prev]);
         setAppState('displaying');
       } catch (err) {
         console.error('Transform failed:', err);
@@ -89,6 +109,7 @@ export default function App() {
     setDisplaySession({
       originalImageUrl: `${API_URL}${session.originalUrl}`,
       transformedImageUrl: `${API_URL}${session.transformedUrl}`,
+      createdAt: session.createdAt,
     });
     setAppState('displaying');
   }, []);
@@ -119,6 +140,7 @@ export default function App() {
         <PhotoDisplay
           originalImageUrl={displaySession.originalImageUrl}
           transformedImageUrl={displaySession.transformedImageUrl}
+          createdAt={displaySession.createdAt}
           onDismiss={handleDismissPhoto}
         />
       )}
