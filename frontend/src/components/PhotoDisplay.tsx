@@ -46,8 +46,18 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt,
       }
     };
 
+    const handleKeyup = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+      }
+    };
+
     window.addEventListener('keydown', handleKeydown);
-    return () => window.removeEventListener('keydown', handleKeydown);
+    window.addEventListener('keyup', handleKeyup);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('keyup', handleKeyup);
+    };
   }, [onDismiss]);
 
   return (

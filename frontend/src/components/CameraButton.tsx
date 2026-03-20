@@ -5,23 +5,27 @@ import { useWebcam } from '@/hooks/useWebcam';
 
 interface CameraButtonProps {
   onCapture: (blob: Blob) => void;
+  onCameraOpen: () => void;
+  onCameraClose: () => void;
   disabled?: boolean;
 }
 
-export function CameraButton({ onCapture, disabled }: CameraButtonProps) {
+export function CameraButton({ onCapture, onCameraOpen, onCameraClose, disabled }: CameraButtonProps) {
   const { videoRef, canvasRef, isActive, error, startWebcam, stopWebcam, capturePhoto } =
     useWebcam();
   const [showWebcam, setShowWebcam] = React.useState(false);
 
   const handleOpen = useCallback(async () => {
     setShowWebcam(true);
+    onCameraOpen();
     await startWebcam();
-  }, [startWebcam]);
+  }, [startWebcam, onCameraOpen]);
 
   const handleClose = useCallback(() => {
     stopWebcam();
     setShowWebcam(false);
-  }, [stopWebcam]);
+    onCameraClose();
+  }, [stopWebcam, onCameraClose]);
 
   const handleCapture = useCallback(() => {
     const blob = capturePhoto();
@@ -29,6 +33,7 @@ export function CameraButton({ onCapture, disabled }: CameraButtonProps) {
       stopWebcam();
       setShowWebcam(false);
       onCapture(blob);
+      // Note: don't call onCameraClose here — App.tsx transitions to 'processing'
     }
   }, [capturePhoto, stopWebcam, onCapture]);
 

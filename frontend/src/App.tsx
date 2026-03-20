@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { CameraButton } from '@/components/CameraButton';
 import { PhotoDisplay } from '@/components/PhotoDisplay';
@@ -10,7 +10,7 @@ const DEFAULT_PROMPT =
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-type AppState = 'idle' | 'processing' | 'displaying';
+type AppState = 'idle' | 'camera' | 'processing' | 'displaying';
 
 interface DisplaySession {
   originalImageUrl: string;
@@ -24,6 +24,7 @@ export default function App() {
   const [displaySession, setDisplaySession] = useState<DisplaySession | null>(null);
   const [history, setHistory] = useState<PhotoSession[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const spaceDismissRef = useRef(false);
 
   // Load history on mount
   const loadHistory = useCallback(async () => {
@@ -43,13 +44,24 @@ export default function App() {
   }, [loadHistory]);
 
   // Listen for spacebar to open camera when idle
+  // keydown: preventDefault to stop page scroll
+  // keyup: open camera (avoids conflict with dismiss-Space triggering open)
   useEffect(() => {
     if (appState !== 'idle') return;
 
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
-        // Trigger the camera button
+      }
+    };
+
+    const handleKeyup = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        // If Space was just used to dismiss a photo, skip opening the camera
+        if (spaceDismissRef.current) {
+          spaceDismissRef.current = false;
+          return;
+        }
         const cameraButton = document.querySelector('button[aria-label="Open camera"]') as HTMLButtonElement;
         if (cameraButton && !cameraButton.disabled) {
           cameraButton.click();
@@ -58,8 +70,15 @@ export default function App() {
     };
 
     window.addEventListener('keydown', handleKeydown);
-    return () => window.removeEventListener('keydown', handleKeydown);
+    window.addEventListener('keyup', handleKeyup);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('keyup', handleKeyup);
+    };
   }, [appState]);
+
+  const handleCameraOpen = useCallback(() => setAppState('camera'), []);
+  const handleCameraClose = useCallback(() => setAppState('idle'), []);
 
   const handleCapture = useCallback(
     async (blob: Blob) => {
@@ -90,6 +109,8 @@ export default function App() {
           transformedImageUrl: `${API_URL}${session.transformedUrl}`,
           createdAt: session.createdAt,
         });
+        // Add the new session to history
+        setHistory((prev) => [session, ...prev]);
         setAppState('displaying');
       } catch (err) {
         console.error('Transform failed:', err);
@@ -101,6 +122,7 @@ export default function App() {
   );
 
   const handleDismissPhoto = useCallback(() => {
+    spaceDismissRef.current = true;
     setDisplaySession(null);
     setAppState('idle');
   }, []);
@@ -205,6 +227,8 @@ export default function App() {
           {/* Camera button */}
           <CameraButton
             onCapture={handleCapture}
+            onCameraOpen={handleCameraOpen}
+            onCameraClose={handleCameraClose}
             disabled={appState === 'processing'}
           />
 
