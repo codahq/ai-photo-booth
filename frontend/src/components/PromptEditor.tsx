@@ -19,9 +19,10 @@ interface PromptEditorProps {
   promptHistory: string[];
   model: string;
   onModelChange: (model: string) => void;
+  onReprocess?: () => void;
 }
 
-export function PromptEditor({ prompt, onPromptChange, promptHistory, model, onModelChange }: PromptEditorProps) {
+export function PromptEditor({ prompt, onPromptChange, promptHistory, model, onModelChange, onReprocess }: PromptEditorProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -72,7 +73,17 @@ export function PromptEditor({ prompt, onPromptChange, promptHistory, model, onM
             placeholder="Describe how you want your photo transformed..."
             className="resize-none bg-gray-950/50 border-white/10 text-gray-200 placeholder:text-gray-600 focus-visible:ring-amber-400/50"
           />
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {onReprocess && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onReprocess}
+                className="text-gray-400 hover:text-amber-400 text-xs"
+              >
+                Reprocess
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
