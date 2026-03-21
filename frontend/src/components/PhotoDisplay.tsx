@@ -53,14 +53,14 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt,
     };
 
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isTyping()) {
+      if ((e.code === 'Space' || e.code === 'ArrowRight') && !isTyping()) {
         e.preventDefault();
         onDismiss();
       }
     };
 
     const handleKeyup = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isTyping()) {
+      if ((e.code === 'Space' || e.code === 'ArrowRight') && !isTyping()) {
         e.preventDefault();
       }
     };
