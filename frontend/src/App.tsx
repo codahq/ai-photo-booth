@@ -344,6 +344,9 @@ export default function App() {
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
+          {/* Prompt editor */}
+          <PromptEditor prompt={prompt} onPromptChange={setPrompt} promptHistory={promptHistory} model={model} onModelChange={setModel} />
+
           {/* History */}
           <HistoryBrowser
             sessions={history}
@@ -351,9 +354,6 @@ export default function App() {
             onSelectImage={handleSelectHistoryImage}
             onDeleteSession={handleDeleteHistorySession}
           />
-
-          {/* Prompt editor */}
-          <PromptEditor prompt={prompt} onPromptChange={setPrompt} promptHistory={promptHistory} model={model} onModelChange={setModel} />
         </section>
       </main>
     </div>
