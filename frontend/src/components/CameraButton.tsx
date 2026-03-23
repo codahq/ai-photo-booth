@@ -42,7 +42,7 @@ export function CameraButton({ onCapture, onCameraOpen, onCameraClose, disabled 
     if (!showWebcam) return;
 
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' || e.code === 'ArrowRight') {
         e.preventDefault();
         handleCapture();
       }

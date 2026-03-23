@@ -64,13 +64,13 @@ export default function App() {
     };
 
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isTyping()) {
+      if ((e.code === 'Space' || e.code === 'ArrowRight') && !isTyping()) {
         e.preventDefault();
       }
     };
 
     const handleKeyup = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isTyping()) {
+      if ((e.code === 'Space' || e.code === 'ArrowRight') && !isTyping()) {
         // If Space was just used to dismiss a photo, skip opening the camera
         if (spaceDismissRef.current) {
           spaceDismissRef.current = false;
@@ -316,7 +316,8 @@ export default function App() {
           )}
 
           {/* Scroll hint */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-gray-700 animate-bounce">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <div className="flex flex-col items-center gap-1 text-gray-700 animate-bounce">
             <span className="text-xs tracking-widest uppercase">Scroll</span>
             <svg
               className="w-4 h-4"
@@ -326,6 +327,7 @@ export default function App() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
+          </div>
           </div>
         </section>
 
@@ -342,6 +344,9 @@ export default function App() {
             <div className="flex-1 h-px bg-white/5" />
           </div>
 
+          {/* Prompt editor */}
+          <PromptEditor prompt={prompt} onPromptChange={setPrompt} promptHistory={promptHistory} model={model} onModelChange={setModel} />
+
           {/* History */}
           <HistoryBrowser
             sessions={history}
@@ -349,9 +354,6 @@ export default function App() {
             onSelectImage={handleSelectHistoryImage}
             onDeleteSession={handleDeleteHistorySession}
           />
-
-          {/* Prompt editor */}
-          <PromptEditor prompt={prompt} onPromptChange={setPrompt} promptHistory={promptHistory} model={model} onModelChange={setModel} />
         </section>
       </main>
     </div>

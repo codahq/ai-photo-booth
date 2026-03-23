@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Clock, Download, ImageIcon, Trash2 } from 'lucide-react';
+import { Clock, Download, FolderDown, ImageIcon, Trash2 } from 'lucide-react';
 
 export interface PhotoSession {
   id: string;
@@ -20,6 +20,8 @@ interface HistoryBrowserProps {
 export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSession }: HistoryBrowserProps) {
   // Track which sessions are showing their original vs transformed
   const [shownImageId, setShownImageId] = useState<Record<string, 'transformed' | 'original'>>({});
+  const [exporting, setExporting] = useState<'all' | 'originals' | 'transformations' | null>(null);
+  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
 
   const toggleImage = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,6 +47,44 @@ export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSessio
     }
   }, []);
 
+  const handleExport = useCallback(async (type: 'all' | 'originals' | 'transformations') => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      setExporting(type);
+
+      const entries: { url: string; filename: string }[] = [];
+      for (const session of sessions) {
+        const dateStr = formatDateForFilename(session.createdAt);
+        if (type === 'all' || type === 'originals') {
+          entries.push({ url: `${apiUrl}${session.originalUrl}`, filename: `${dateStr} - original.png` });
+        }
+        if (type === 'all' || type === 'transformations') {
+          entries.push({ url: `${apiUrl}${session.transformedUrl}`, filename: `${dateStr} - ai.png` });
+        }
+      }
+
+      setExportProgress({ done: 0, total: entries.length });
+      for (let i = 0; i < entries.length; i++) {
+        const { url, filename } = entries[i];
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        setExportProgress({ done: i + 1, total: entries.length });
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Export failed:', err);
+      }
+    } finally {
+      setExporting(null);
+      setExportProgress(null);
+    }
+  }, [sessions, apiUrl]);
+
   function formatDateForFilename(iso: string): string {
     const d = new Date(iso);
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -68,12 +108,35 @@ export function HistoryBrowser({ sessions, apiUrl, onSelectImage, onDeleteSessio
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <Clock className="w-4 h-4 text-amber-400/70" />
         <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
           History
         </h2>
         <span className="text-xs text-gray-600 ml-1">({sessions.length} photo{sessions.length !== 1 ? 's' : ''})</span>
+
+        <div className="ml-auto flex items-center gap-2">
+          {exporting && exportProgress ? (
+            <span className="text-xs text-amber-400/70">
+              Exporting {exportProgress.done}/{exportProgress.total}…
+            </span>
+          ) : (
+            <>
+              {(['all', 'originals', 'transformations'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleExport(type)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-gray-400 border border-white/10 hover:border-amber-400/40 hover:text-amber-300 transition-colors"
+                  title={`Export ${type === 'all' ? 'all photos' : type === 'originals' ? 'all originals' : 'all transformations'}`}
+                >
+                  <FolderDown className="w-3 h-3" />
+                  {type === 'all' ? 'Export all' : type === 'originals' ? 'Originals' : 'Transformations'}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       <ScrollArea className="w-full">
