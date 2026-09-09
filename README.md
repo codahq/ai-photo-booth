@@ -76,24 +76,25 @@ windows tree and they drift from the image.
 the container can talk to the host docker daemon, so `docker compose up --build -d` works from a
 terminal inside it.
 
-### one wart: typescript 7 and your editor
+### typescript 7 in the editor
 
-typescript 7 is the go-native compiler. it ships `tsc.js` but **no `tsserver.js` and no programmatic
-api** — that's deferred to 7.1. vs code's language server *is* tsserver, so it can't run the project's
-compiler and falls back to its own bundled typescript. so:
+typescript 7 is the go-native compiler. it doesn't ship the old `tsserver.js` — instead the native
+binary exposes a **language server over lsp**, and the **typescript native preview** extension
+(`TypeScriptTeam.native-preview`) is what talks to it. that extension is listed in
+`.devcontainer/devcontainer.json`, so reopening in the container installs it and your editor gets the
+same typescript 7 that builds the project.
 
-- **builds** use typescript 7.0.2 (the pinned version) and are authoritative
-- **your editor** uses whatever typescript vs code bundles
+without that extension vs code falls back to its own bundled typescript, which is a different version
+from the pinned one and can disagree with the build. if you ever see that, the build is authoritative —
+run `npm run build` in the container.
 
-they can disagree. if the editor flags something the build doesn't, trust the build — run
-`npm run build` in the container. don't set `typescript.tsdk` to the project's copy; there's nothing
-there for vs code to load.
+don't set `typescript.tsdk`; there's no `tsserver.js` to point it at. the extension finds the platform
+binary on its own.
 
-this is also why the backend dev script uses `tsx` rather than `ts-node-dev`: same missing api.
-
-if the mismatch becomes annoying, pinning typescript back to 6.x in both `package.json` files fixes it
-— 6.x still ships the api, and the only thing 7 buys here is compile speed on a project that builds in
-under a second.
+separately, typescript 7 ships no *programmatic* api until 7.1. that only affects tools that consume
+the compiler as a library — it's why the backend dev script uses `tsx` rather than `ts-node-dev`, and
+why typescript-eslint and the vue/svelte/astro tooling can't use 7 yet. editors are unaffected; they go
+through lsp.
 
 ## the tech
 

@@ -32,13 +32,18 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        // TypeScript 7 dropped the legacy tsserver.js in favour of an LSP server
+        // built into the native binary. This extension is what speaks to it, and
+        // replaces VS Code's built-in JS/TS IntelliSense. Without it the editor
+        // falls back to its own bundled TypeScript, which is a different version
+        // from the one that builds this project.
+        "TypeScriptTeam.native-preview",
         "bradlc.vscode-tailwindcss",
         "ms-azuretools.vscode-docker"
       ],
       "settings": {
-        // Deliberately NOT setting typescript.tsdk. TypeScript 7 ships tsc.js
-        // but no tsserver.js, so the editor cannot run the project's compiler
-        // and must use its own bundled TypeScript. See README.
+        // Don't set typescript.tsdk: there is no tsserver.js to point it at.
+        // The native-preview extension locates the platform binary itself.
         "editor.formatOnSave": false,
         "files.eol": "\n"
       }
