@@ -2,10 +2,11 @@
   "name": "ai-photo-booth",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
 
-  // No workspaceMount/workspaceFolder override. VS Code computes the bind mount
-  // itself and handles Windows path translation; overriding it by hand produces
-  // a malformed mount string from a c:\... path. Default is
-  // /workspaces/<folder-name>.
+  // Let VS Code compute workspaceMount itself - it handles Windows path
+  // translation, and a hand-written source=c:\... mount string is a footgun.
+  // workspaceFolder is stated explicitly to match the mount VS Code creates,
+  // so the folder it opens can't drift from the folder that exists.
+  "workspaceFolder": "/workspaces/ai-photo-booth",
 
   // node_modules live in named volumes rather than in the bind-mounted source.
   // A bind mount would put them back on the Windows filesystem, which is both
