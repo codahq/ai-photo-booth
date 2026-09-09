@@ -23,7 +23,7 @@ function formatDateForFilename(iso: string): string {
 export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt, onDismiss, prompt, promptHistory, model, onModelChange, onReprocess }: PhotoDisplayProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState(prompt ?? '');
-  const [editableModel, setEditableModel] = useState(model ?? 'gpt-image-1.5');
+  const [editableModel, setEditableModel] = useState(model ?? 'gpt-image-2');
   const dateStr = formatDateForFilename(createdAt);
 
   const handleDownload = useCallback(async () => {
@@ -79,7 +79,7 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt,
       onClick={onDismiss}
     >
       {/* Dismiss hint */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/70 text-sm pointer-events-none">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-xs rounded-full text-white/70 text-sm pointer-events-none">
         <X className="w-4 h-4" />
         <span>Click anywhere to return</span>
       </div>

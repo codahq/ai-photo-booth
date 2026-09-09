@@ -22,7 +22,7 @@ interface DisplaySession {
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
-  const [model, setModel] = useState('gpt-image-1.5');
+  const [model, setModel] = useState('gpt-image-2');
   const [promptHistory, setPromptHistory] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('promptHistory') || '[]');
@@ -332,7 +332,7 @@ export default function App() {
         </section>
 
         {/* Bottom section — prompt + history */}
-        <section className="px-4 pb-12 pt-8 space-y-8 bg-gradient-to-b from-background to-gray-950">
+        <section className="px-4 pb-12 pt-8 space-y-8 bg-linear-to-b from-background to-gray-950">
           {/* Divider */}
           <div className="flex items-center gap-4 max-w-2xl mx-auto">
             <div className="flex-1 h-px bg-white/5" />

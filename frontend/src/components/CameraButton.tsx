@@ -120,7 +120,7 @@ export function CameraButton({ onCapture, onCameraOpen, onCameraClose, disabled 
     <button
       onClick={handleOpen}
       disabled={disabled}
-      className="group relative flex flex-col items-center justify-center gap-6 w-64 h-64 rounded-full bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-amber-400/30 hover:border-amber-400/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed pulse-amber hover:scale-105 active:scale-95 shadow-2xl shadow-black"
+      className="group relative flex flex-col items-center justify-center gap-6 w-64 h-64 rounded-full bg-linear-to-br from-gray-900 to-gray-800 border-2 border-amber-400/30 hover:border-amber-400/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed pulse-amber hover:scale-105 active:scale-95 shadow-2xl shadow-black"
       aria-label="Open camera"
     >
       <Camera
