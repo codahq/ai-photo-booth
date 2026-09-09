@@ -1,0 +1,12 @@
+# The working tree lives on a Windows drive but every tool that consumes it -
+# the containers, the Linux builds - expects LF. Without this, editing one line
+# in an editor that writes LF rewrites the whole file and a one-line fix shows
+# up as a 900-line diff.
+* text=auto eol=lf
+
+# Binary formats must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.svg text eol=lf
