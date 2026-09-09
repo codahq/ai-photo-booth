@@ -141,7 +141,7 @@ export default function App() {
         setAppState('idle');
       }
     },
-    [prompt]
+    [prompt, model]
   );
 
   const handleDismissPhoto = useCallback(() => {

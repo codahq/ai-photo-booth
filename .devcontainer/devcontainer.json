@@ -29,7 +29,12 @@
 
   // Fresh named volumes are owned by root; hand them to the container user
   // before installing.
-  "postCreateCommand": "sudo chown node:node backend/node_modules frontend/node_modules && npm ci --prefix backend && npm ci --prefix frontend",
+  // The 9p mount carrying the Windows source reports every file as uid 0, so the
+  // repo looks root-owned to the node user and git refuses it as "dubious
+  // ownership". chown can't fix that - the ownership is invented by the mount, not
+  // stored - so the exception is the fix. It has to run on every create because it
+  // lands in the container's own ~/.gitconfig.
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && sudo chown node:node backend/node_modules frontend/node_modules && npm ci --prefix backend && npm ci --prefix frontend",
 
   "forwardPorts": [3001, 5174],
   "portsAttributes": {
