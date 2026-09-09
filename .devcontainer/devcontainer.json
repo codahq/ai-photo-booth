@@ -2,21 +2,28 @@
   "name": "ai-photo-booth",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
 
-  "workspaceFolder": "/workspace",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  // No workspaceMount/workspaceFolder override. VS Code computes the bind mount
+  // itself and handles Windows path translation; overriding it by hand produces
+  // a malformed mount string from a c:\... path. Default is
+  // /workspaces/<folder-name>.
 
   // node_modules live in named volumes rather than in the bind-mounted source.
   // A bind mount would put them back on the Windows filesystem, which is both
   // slow and how we ended up with Linux binaries sitting in the working tree.
   "mounts": [
-    "source=apb-backend-node-modules,target=/workspace/backend/node_modules,type=volume",
-    "source=apb-frontend-node-modules,target=/workspace/frontend/node_modules,type=volume"
+    "source=apb-backend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/backend/node_modules,type=volume",
+    "source=apb-frontend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/frontend/node_modules,type=volume"
   ],
 
   // Lets `docker compose up` work from a terminal inside the container by
   // talking to the host's Docker daemon, rather than nesting a second one.
   "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      // The typescript-node:22 base is Debian trixie, which has no moby-cli
+      // packages. Without this the feature install fails the image build.
+      // false installs the upstream Docker CE CLI instead.
+      "moby": false
+    }
   },
 
   // Fresh named volumes are owned by root; hand them to the container user
