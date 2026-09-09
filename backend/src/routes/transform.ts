@@ -3,13 +3,13 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { ensureStorageDirs, saveSession, getStorageDir } from '../storage/imageStore';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const DEFAULT_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5';
+const DEFAULT_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2';
 const ALLOWED_MODELS = new Set([
   'gpt-image-2.5-flare',
   'gpt-image-2.5-sunburst',
@@ -134,7 +134,7 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
     const prompt: string = (req.body.prompt as string) || DEFAULT_PROMPT;
     const requestedModel = req.body.model as string;
     const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
-    const sessionId = uuidv4();
+    const sessionId = randomUUID();
     const storageDir = getStorageDir();
 
     // Save original image

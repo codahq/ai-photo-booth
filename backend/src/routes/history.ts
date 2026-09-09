@@ -14,7 +14,7 @@ router.get('/', (_req: Request, res: Response): void => {
   }
 });
 
-router.delete('/:id', (req: Request, res: Response): void => {
+router.delete('/:id', (req: Request<{ id: string }>, res: Response): void => {
   try {
     const deleted = deleteSessionById(req.params.id);
     if (!deleted) {
