@@ -48,7 +48,13 @@ you need an openai api key and docker installed. that's pretty much it.
 2. run `docker compose up --build -d`
 3. open `http://localhost:5174` in chrome or edge (firefox won't work for the folder export feature)
 
-the backend runs on port 3001 and the frontend on 5174. photos are stored in a docker volume so they survive restarts.
+the backend runs on port 3001 and the frontend on 5174.
+
+photos are written straight to `c:\photobooth` on the host, not into a docker volume. this is deliberate:
+docker volumes live inside `docker_data.vhdx`, and a docker desktop reset or reinstall rebuilds that file
+and destroys every volume with it — that's how the original party photos were lost. anywhere under
+`c:\users` is no safer, since a windows update has wiped that profile directory before. point
+`PHOTO_STORAGE` in `.env` somewhere else if you want, but keep it off both of those. back the folder up.
 
 if you're running it on a laptop and showing it on a tv, just plug the tv in and mirror or extend the display, open the browser full screen on the tv, and point the webcam at people. worked a treat.
 

@@ -10,7 +10,14 @@ services:
       - PORT=3001
       - FRONTEND_ORIGIN=http://localhost:5174
     volumes:
-      - photo-storage:/app/storage
+      # Bind mount, not a named volume: Docker volumes live inside docker_data.vhdx,
+      # which a Docker Desktop reset/reinstall rebuilds from scratch and silently
+      # destroys. Keep this path outside C:\Users too - Windows wipes profile dirs.
+      - type: bind
+        source: ${PHOTO_STORAGE:-C:/photobooth}
+        target: /app/storage
+        bind:
+          create_host_path: true
     restart: unless-stopped
 
   frontend:
@@ -24,6 +31,3 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-
-volumes:
-  photo-storage:
