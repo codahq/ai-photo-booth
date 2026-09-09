@@ -60,9 +60,44 @@ if you're running it on a laptop and showing it on a tv, just plug the tv in and
 
 ---
 
+## developing on it
+
+open the folder in vs code and pick **"reopen in container"** when prompted (or ctrl+shift+p →
+*dev containers: reopen in container*). that runs vs code's whole language service inside the
+container, so typescript, autocomplete and go-to-definition all use the same dependencies the build
+uses. you don't need node installed on windows at all.
+
+`node_modules` lives in docker named volumes, not in the source tree — `.devcontainer/devcontainer.json`
+mounts `apb-backend-node-modules` and `apb-frontend-node-modules` over the two package directories.
+the empty `node_modules` folders you'll see on the host are just mount points; the real packages are in
+the volumes. this is deliberate: installing them on the windows side gets you linux binaries in a
+windows tree and they drift from the image.
+
+the container can talk to the host docker daemon, so `docker compose up --build -d` works from a
+terminal inside it.
+
+### one wart: typescript 7 and your editor
+
+typescript 7 is the go-native compiler. it ships `tsc.js` but **no `tsserver.js` and no programmatic
+api** — that's deferred to 7.1. vs code's language server *is* tsserver, so it can't run the project's
+compiler and falls back to its own bundled typescript. so:
+
+- **builds** use typescript 7.0.2 (the pinned version) and are authoritative
+- **your editor** uses whatever typescript vs code bundles
+
+they can disagree. if the editor flags something the build doesn't, trust the build — run
+`npm run build` in the container. don't set `typescript.tsdk` to the project's copy; there's nothing
+there for vs code to load.
+
+this is also why the backend dev script uses `tsx` rather than `ts-node-dev`: same missing api.
+
+if the mismatch becomes annoying, pinning typescript back to 6.x in both `package.json` files fixes it
+— 6.x still ships the api, and the only thing 7 buys here is compile speed on a project that builds in
+under a second.
+
 ## the tech
 
 - frontend: react + vite + tailwind
 - backend: node + express + typescript
-- ai: openai image editing api (gpt-image-1 by default)
+- ai: openai image editing api (gpt-image-2 by default)
 - containerised with docker compose

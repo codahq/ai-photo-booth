@@ -1,0 +1,49 @@
+{
+  "name": "ai-photo-booth",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+
+  // node_modules live in named volumes rather than in the bind-mounted source.
+  // A bind mount would put them back on the Windows filesystem, which is both
+  // slow and how we ended up with Linux binaries sitting in the working tree.
+  "mounts": [
+    "source=apb-backend-node-modules,target=/workspace/backend/node_modules,type=volume",
+    "source=apb-frontend-node-modules,target=/workspace/frontend/node_modules,type=volume"
+  ],
+
+  // Lets `docker compose up` work from a terminal inside the container by
+  // talking to the host's Docker daemon, rather than nesting a second one.
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+
+  // Fresh named volumes are owned by root; hand them to the container user
+  // before installing.
+  "postCreateCommand": "sudo chown node:node backend/node_modules frontend/node_modules && npm ci --prefix backend && npm ci --prefix frontend",
+
+  "forwardPorts": [3001, 5174],
+  "portsAttributes": {
+    "3001": { "label": "backend" },
+    "5174": { "label": "frontend" }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        // Deliberately NOT setting typescript.tsdk. TypeScript 7 ships tsc.js
+        // but no tsserver.js, so the editor cannot run the project's compiler
+        // and must use its own bundled TypeScript. See README.
+        "editor.formatOnSave": false,
+        "files.eol": "\n"
+      }
+    }
+  },
+
+  "remoteUser": "node"
+}
