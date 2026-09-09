@@ -23,7 +23,7 @@ function formatDateForFilename(iso: string): string {
 export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt, onDismiss, prompt, promptHistory, model, onModelChange, onReprocess }: PhotoDisplayProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState(prompt ?? '');
-  const [editableModel, setEditableModel] = useState(model ?? 'gpt-image-1');
+  const [editableModel, setEditableModel] = useState(model ?? 'gpt-image-1.5');
   const dateStr = formatDateForFilename(createdAt);
 
   const handleDownload = useCallback(async () => {

@@ -8,9 +8,13 @@ const DEFAULT_PROMPT =
   'Transform this photo to look like it was taken in the 1950s. Convert to black and white or sepia tone. Change the clothing of any people to 1950s style fashion. Place the scene in a 1950s setting with period-appropriate props, furniture, and environment.';
 
 const MODELS = [
-  { id: 'gpt-image-1', label: 'GPT Image 1' },
+  { id: 'gpt-image-2.5-flare', label: 'GPT Image 2.5 Flare' },
+  { id: 'gpt-image-2.5-sunburst', label: 'GPT Image 2.5 Sunburst' },
+  { id: 'gpt-image-2', label: 'GPT Image 2' },
   { id: 'gpt-image-1.5', label: 'GPT Image 1.5' },
+  { id: 'gpt-image-1', label: 'GPT Image 1' },
   { id: 'gpt-image-1-mini', label: 'GPT Image Fast / Lite' },
+  { id: 'chatgpt-image-latest', label: 'ChatGPT Image (legacy)' },
 ];
 
 interface PromptEditorProps {
@@ -50,12 +54,12 @@ export function PromptEditor({ prompt, onPromptChange, promptHistory, model, onM
         <div className="mt-2 p-4 bg-gray-900/50 border border-white/10 rounded-lg space-y-3">
 
           {/* Model selector */}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {MODELS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => onModelChange(m.id)}
-                className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-colors border ${
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors border ${
                   model === m.id
                     ? 'bg-amber-400/15 border-amber-400/40 text-amber-300'
                     : 'border-white/10 text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'

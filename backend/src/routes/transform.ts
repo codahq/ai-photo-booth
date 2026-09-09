@@ -9,49 +9,68 @@ import { ensureStorageDirs, saveSession, getStorageDir } from '../storage/imageS
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const DEFAULT_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
-const ALLOWED_MODELS = new Set(['gpt-image-1', 'gpt-image-1.5', 'gpt-image-1-mini']);
+const DEFAULT_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1.5';
+const ALLOWED_MODELS = new Set([
+  'gpt-image-2.5-flare',
+  'gpt-image-2.5-sunburst',
+  'gpt-image-2',
+  'gpt-image-1.5',
+  'gpt-image-1',
+  'gpt-image-1-mini',
+  'chatgpt-image-latest',
+]);
 const PROVIDER = 'openai';
 const OPENAI_IMAGES_EDIT_URL = 'https://api.openai.com/v1/images/edits';
 
 const DEFAULT_PROMPT =
   'Transform this photo to look like it was taken in the 1950s. Convert to black and white or sepia tone. Change the clothing of any people to 1950s style fashion. Place the scene in a 1950s setting with period-appropriate props, furniture, and environment.';
 
-function buildEffectivePrompt(prompt: string, model: string): string {
-  if (model !== 'dall-e-2') {
-    return prompt;
-  }
-  // dall-e-2 needs extra nudging to produce visible changes
-  return `${prompt}\n\nApply a strong, clearly visible transformation to the whole image. Keep the same main subject and composition, but make the style change obvious.`;
-}
+// Every gpt-image model accepts these three; picking the closest to the webcam's own
+// aspect ratio keeps faces from being letterboxed into a square.
+const OUTPUT_SIZES = [
+  { label: '1024x1024', width: 1024, height: 1024 },
+  { label: '1536x1024', width: 1536, height: 1024 },
+  { label: '1024x1536', width: 1024, height: 1536 },
+];
 
-async function prepareImageForOpenAIEdit(imageBuffer: Buffer): Promise<Buffer> {
-  // OpenAI edits expects square PNG input; use contain+pad to avoid cropping/zooming.
-  return sharp(imageBuffer)
+async function prepareImageForOpenAIEdit(
+  imageBuffer: Buffer
+): Promise<{ buffer: Buffer; size: string }> {
+  const metadata = await sharp(imageBuffer).metadata();
+  // EXIF orientations 5-8 rotate by 90 degrees, so the stored dimensions are swapped
+  const swapped = (metadata.orientation ?? 1) >= 5;
+  const width = (swapped ? metadata.height : metadata.width) ?? 1024;
+  const height = (swapped ? metadata.width : metadata.height) ?? 1024;
+  const aspect = width / height;
+
+  const target = OUTPUT_SIZES.reduce((best, candidate) =>
+    Math.abs(candidate.width / candidate.height - aspect) <
+    Math.abs(best.width / best.height - aspect)
+      ? candidate
+      : best
+  );
+
+  // contain+pad rather than crop so nobody loses the top of their head
+  const buffer = await sharp(imageBuffer)
     .rotate()
-    .resize(1024, 1024, {
+    .resize(target.width, target.height, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 1 },
       withoutEnlargement: false,
     })
     .png({ compressionLevel: 9 })
     .toBuffer();
+
+  return { buffer, size: target.label };
 }
 
-async function createFullEditMask(size: number): Promise<Buffer> {
-  return sharp({
-    create: {
-      width: size,
-      height: size,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    },
-  })
-    .png()
-    .toBuffer();
-}
-
-async function editImageWithOpenAI(imageBuffer: Buffer, mimeType: string, prompt: string, model: string): Promise<Buffer> {
+async function editImageWithOpenAI(
+  imageBuffer: Buffer,
+  mimeType: string,
+  prompt: string,
+  model: string,
+  size: string
+): Promise<Buffer> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured on the backend');
@@ -60,15 +79,8 @@ async function editImageWithOpenAI(imageBuffer: Buffer, mimeType: string, prompt
   const formData = new FormData();
   formData.append('model', model);
   formData.append('prompt', prompt);
-  formData.append('size', '1024x1024');
+  formData.append('size', size);
   formData.append('image', new Blob([imageBuffer], { type: mimeType }), 'input.png');
-
-  if (model === 'dall-e-2') {
-    // dall-e-2 requires response_format and benefits from a full mask to repaint everything
-    formData.append('response_format', 'b64_json');
-    const fullMask = await createFullEditMask(1024);
-    formData.append('mask', new Blob([fullMask], { type: 'image/png' }), 'mask.png');
-  }
 
   const response = await fetch(OPENAI_IMAGES_EDIT_URL, {
     method: 'POST',
@@ -134,16 +146,15 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
       throw new Error('OPENAI_API_KEY is not configured on the backend');
     }
 
-    const normalizedPng = await prepareImageForOpenAIEdit(req.file.buffer);
-
-    const effectivePrompt = buildEffectivePrompt(prompt, model);
+    const { buffer: normalizedPng, size } = await prepareImageForOpenAIEdit(req.file.buffer);
 
     const inferenceStartedAt = Date.now();
     const imageBuffer = await editImageWithOpenAI(
       normalizedPng,
       'image/png',
-      effectivePrompt,
-      model
+      prompt,
+      model,
+      size
     );
     const inferenceEndedAt = Date.now();
 
@@ -180,6 +191,7 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
       sessionId,
       model,
       provider: PROVIDER,
+      size,
       inputBytes: req.file.buffer.length,
       outputBytes: imageBuffer.length,
       durationsMs: session.transform.durationsMs,

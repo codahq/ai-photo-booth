@@ -22,7 +22,7 @@ interface DisplaySession {
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
-  const [model, setModel] = useState('gpt-image-1');
+  const [model, setModel] = useState('gpt-image-1.5');
   const [promptHistory, setPromptHistory] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('promptHistory') || '[]');
