@@ -24,7 +24,20 @@
   // slow and how we ended up with Linux binaries sitting in the working tree.
   "mounts": [
     "source=apb-backend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/backend/node_modules,type=volume",
-    "source=apb-frontend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/frontend/node_modules,type=volume"
+    "source=apb-frontend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/frontend/node_modules,type=volume",
+
+    // Claude Code keeps its login, session transcripts, memory and edit history
+    // in ~/.claude. /home/node is container-local, so every rebuild silently
+    // destroyed all of it - that is how a "remember this forever" instruction
+    // got lost between sessions. A volume makes it outlive the container.
+    //
+    // A bind mount to the Windows side is not an option here: the 9p mount
+    // reports every file as uid 0 (see the safe.directory note below), which
+    // breaks the 0600 ownership Claude Code needs on .credentials.json.
+    //
+    // Caveat, same one as the storage bind in docker-compose.yml: named volumes
+    // live in docker_data.vhdx, so a Docker Desktop reset still wipes this.
+    "source=apb-claude-home,target=/home/node/.claude,type=volume"
   ],
 
   // Lets `docker compose up` work from a terminal inside the container by
@@ -45,7 +58,7 @@
   // ownership". chown can't fix that - the ownership is invented by the mount, not
   // stored - so the exception is the fix. It has to run on every create because it
   // lands in the container's own ~/.gitconfig.
-  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && sudo chown node:node backend/node_modules frontend/node_modules && npm ci --prefix backend && npm ci --prefix frontend",
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && sudo chown node:node backend/node_modules frontend/node_modules /home/node/.claude && npm ci --prefix backend && npm ci --prefix frontend",
 
   "forwardPorts": [3001, 5174],
   "portsAttributes": {
