@@ -43,7 +43,7 @@ export function PhotoDisplay({ originalImageUrl, transformedImageUrl, createdAt,
     } catch (error) {
       console.error('Download failed:', error);
     }
-  }, [showOriginal, originalImageUrl, transformedImageUrl]);
+  }, [showOriginal, originalImageUrl, transformedImageUrl, dateStr]);
 
   // Listen for spacebar to dismiss
   useEffect(() => {

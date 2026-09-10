@@ -1,0 +1,15 @@
+# The Dockerfile installs dependencies itself; copying host node_modules over
+# them would replace correct Linux binaries (sharp is platform-specific).
+node_modules
+dist
+
+# Never bake secrets into an image layer.
+.env
+.env.*
+!.env.example
+
+# Photos live on a host bind mount, not in the image.
+storage
+
+.git
+*.log

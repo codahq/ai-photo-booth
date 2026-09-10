@@ -191,7 +191,7 @@ export default function App() {
       setError(err instanceof Error ? err.message : 'Failed to reprocess image');
       setAppState('idle');
     }
-  }, [displaySession, model]);
+  }, [displaySession]);
 
   const handleSelectHistoryImage = useCallback((session: PhotoSession) => {
     setDisplaySession({

@@ -1,0 +1,13 @@
+# The Dockerfile runs `npm ci` and then `COPY . .`, so anything left here gets
+# copied over the freshly installed tree. Host node_modules would land on top of
+# the ones the image just built - and on Windows those are the wrong platform.
+node_modules
+dist
+
+# Never bake secrets into an image layer.
+.env
+.env.*
+!.env.example
+
+.git
+*.log

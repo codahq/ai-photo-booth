@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
 import { ensureStorageDirs, getStorageDir } from './storage/imageStore';
 import transformRouter from './routes/transform';
 import historyRouter from './routes/history';

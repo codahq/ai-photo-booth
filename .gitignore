@@ -16,9 +16,6 @@ backend/dist/
 backend/storage/
 storage/
 
-# Docker
-.dockerignore
-
 # OS
 .DS_Store
 Thumbs.db
