@@ -1,6 +1,17 @@
 {
+  // "name" is only VS Code's label for this environment - it is never passed to
+  // the daemon, so without runArgs below the container gets a generated name
+  // (sad_edison, suspicious_raman, ...) that rerolls on every rebuild. That makes
+  // the container impossible to reference from a script or across sessions.
   "name": "ai-photo-booth",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+
+  // Matches the compose-derived names (ai-photo-booth-backend-1 / -frontend-1).
+  // Trade-off: a fixed name is unique per daemon, so only one instance of this
+  // devcontainer can exist at a time - if a rebuild ever leaves a stopped
+  // container behind, creation fails with "name already in use" and the stale
+  // one needs `docker rm ai-photo-booth-dev` first.
+  "runArgs": ["--name", "ai-photo-booth-dev"],
 
   // Let VS Code compute workspaceMount itself - it handles Windows path
   // translation, and a hand-written source=c:\... mount string is a footgun.
